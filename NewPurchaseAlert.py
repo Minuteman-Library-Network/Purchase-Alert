@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 
-#olin report waiting on accounting unit assignment
+"""
+Create weekly purhcase alert files in Excel
+and upload resulting file to FTP server
 
-"""Create and email weekly purhcase alert
+Jeremy Goldstein
+Minuteman Library Network
 
 Based on code from Gem Stone-Logan
 """
@@ -319,6 +322,7 @@ def excelWriter(query_results,excelfile):
     worksheet_other.write(0,15,'OrderLocations', eformatlabel)
     worksheet_other.write(0,16,'IsbnUPC', eformatlabel)
 
+    #initialize row counts at 1 for use with suggested_purchase_formula
     row_adf = 1
     row_adnf = 1
     row_adlp = 1
@@ -332,6 +336,7 @@ def excelWriter(query_results,excelfile):
 
     # Writing the report for staff to the Excel worksheet
     for rownum, row in enumerate(query_results):
+        #Segment rows out by collection based on format, age level and fiction/non-fiction
         if row[4] == 'LARGE PRINT':
             worksheet_adlp.write(row_adlp,0,row[0], eformat)
             worksheet_adlp.write_url(row_adlp,1,row[13], link_format, row[1])
@@ -498,7 +503,7 @@ def runquery(query):
     #connection_string = dbname='iii' user='PUT_USERNAME_HERE' host='sierra-db.library-name.org' password='PUT_PASSWORD_HERE' port=1032
 
     config = configparser.ConfigParser()
-    config.read('C:\\SQL Reports\\creds\\app_SIC.ini')
+    config.read('app_SIC.ini')
       
     try:
 	    # variable connection string should be defined in the imported config file
@@ -517,11 +522,11 @@ def runquery(query):
     
     return rows
 
-#upload report to SIC directory and optionally remove older files
+#upload report to staff ftp server and remove older files
 def ftp_file(local_file,library):
 
     config = configparser.ConfigParser()
-    config.read('C:\\SQL Reports\\creds\\app_SIC.ini')
+    config.read('app_SIC.ini')
 
     cnopts = pysftp.CnOpts()
 
@@ -538,6 +543,7 @@ def ftp_file(local_file,library):
         fullpath = '/reports/Library-Specific Reports/'+library+'/Purchase Alert/{}'.format(fname.filename)
         #time tracked in seconds, st_mtime is time last modified
         name = str(fname.filename)
+        #meta.json relates to the user display when accessing the ftp server, and you can safely ignore.
         if (name != 'meta.json') and  ((time.time() - fname.st_mtime) // (24 * 3600) >= 90):
             srv.remove(fullpath)
 
@@ -552,6 +558,7 @@ def main(library,libcode):
     local_file = excelWriter(tempFile,excelfile)
     ftp_file(local_file,library)
 
+#run once for each location
 main('Acton','ACT')
 main('Acton','AC2')
 main('Arlington','ARL')
